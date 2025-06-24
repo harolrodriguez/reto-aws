@@ -1,0 +1,28 @@
+{
+  "name": "agendamiento-backend",
+  "version": "1.0.0",
+  "description": "Backend para agendamiento de citas médicas",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "local": "npm run build && sls offline start",
+    "deploy": "npm run build && sls deploy --stage dev"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1580.0",
+    "mysql2": "^3.9.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.136",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.28",
+    "@types/uuid": "^9.0.8",
+    "jest": "^29.7.0",
+    "serverless": "^4.0.0",
+    "serverless-dynamodb-local": "^0.2.40",
+    "serverless-offline": "^13.3.3",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.2"
+  }
+}

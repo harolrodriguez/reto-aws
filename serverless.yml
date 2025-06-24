@@ -1,16 +1,158 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
-org: harolsind
-# "service" is the name of this project. This will also be added to your AWS resource names.
-service: agendamiento-backend
+service: agendamiento-citas-backend
+frameworkVersion: '4'
+
+plugins:
+  - serverless-offline
+  - serverless-dynamodb-local
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  
+  environment:
+    STAGE: ${self:provider.stage}
+    REGION: ${self:provider.region}
+    ACCOUNT_ID: ${aws:accountId}
+    RDS_HOST: ''
+    RDS_USER: 'admin'
+    RDS_PASSWORD: ''
+    RDS_DB_NAME_PE: 'citas_pe'
+    RDS_DB_NAME_CL: 'citas_cl'
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:UpdateItem
+          Resource: !GetAtt AppointmentsTable.Arn
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+          Resource: !Sub ${AppointmentsTable.Arn}/index/InsuredIdIndex
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource: !Ref AppointmentSNSTopic
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource:
+            - !GetAtt SqsPeQueue.Arn
+            - !GetAtt SqsClQueue.Arn
+            - !GetAtt StatusUpdateQueue.Arn
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource: '*'
 
 functions:
-  hello:
-    handler: handler.hello
+  api:
+    handler: src/handlers/appointment.handler.handler
     events:
-      - httpApi:
-          path: /
+      - http:
+          path: appointment
+          method: post
+          cors: true
+      - http:
+          path: appointment/{insuredId}
           method: get
+          cors: true
+  
+  processAppointment:
+    handler: src/handlers/processAppointment.handler.handler
+    events:
+      - sqs: !GetAtt SqsPeQueue.Arn
+      - sqs: !GetAtt SqsClQueue.Arn
+
+  updateStatus:
+    handler: src/handlers/updateStatus.handler.handler
+    events:
+      - sqs: !GetAtt StatusUpdateQueue.Arn
+
+resources:
+  Resources:
+    AppointmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Appointments-${self:provider.stage}
+        AttributeDefinitions:
+          - AttributeName: appointmentId
+            AttributeType: S
+          - AttributeName: insuredId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: appointmentId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: InsuredIdIndex
+            KeySchema:
+              - AttributeName: insuredId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    AppointmentSNSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: AppointmentTopic-${self:provider.stage}
+
+    SqsPeQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: sqs_pe-${self:provider.stage}
+        
+    SqsClQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: sqs_cl-${self:provider.stage}
+
+    StatusUpdateQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: status_update_queue-${self:provider.stage}
+
+    SnsToSqsPeSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Protocol: sqs
+        Endpoint: !GetAtt SqsPeQueue.Arn
+        TopicArn: !Ref AppointmentSNSTopic
+        FilterPolicy:
+          countryISO: ["PE"]
+
+    SnsToSqsClSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Protocol: sqs
+        Endpoint: !GetAtt SqsClQueue.Arn
+        TopicArn: !Ref AppointmentSNSTopic
+        FilterPolicy:
+          countryISO: ["CL"]
+
+    AppointmentCompletionRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventPattern:
+          source: ["com.appointment.processing"]
+        Targets:
+          - Arn: !GetAtt StatusUpdateQueue.Arn
+            Id: "StatusUpdateQueueTarget"
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+    stages:
+      - dev

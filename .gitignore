@@ -1,2 +1,4 @@
-node_modules
-.serverless
+node_modules/
+dist/
+.serverless/
+.env
