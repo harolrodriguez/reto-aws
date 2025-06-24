@@ -54,7 +54,7 @@ provider:
 
 functions:
   api:
-    handler: src/handlers/appointment.handler.handler
+    handler: src/handlers/appointment.handler
     events:
       - http:
           path: appointment
@@ -66,7 +66,7 @@ functions:
           cors: true
   
   processAppointment:
-    handler: src/handlers/processAppointment.handler.handler
+    handler: src/handlers/processAppointment.handler
     events:
       - sqs:
           arn: !GetAtt SqsPeQueue.Arn
@@ -74,10 +74,13 @@ functions:
           arn: !GetAtt SqsClQueue.Arn
 
   updateStatus:
-    handler: src/handlers/updateStatus.handler.handler
+    handler: src/handlers/updateStatus.handler
     events:
       - sqs:
           arn: !GetAtt StatusUpdateQueue.Arn
+
+package:
+  individually: true
 
 resources:
   Resources:
@@ -148,14 +151,3 @@ resources:
         Targets:
           - Arn: !GetAtt StatusUpdateQueue.Arn
             Id: "StatusUpdateQueueTarget"
-
-custom:
-  serverless-offline:
-    httpPort: 3000
-  dynamodb:
-    start:
-      port: 8000
-      inMemory: true
-      migrate: true
-    stages:
-      - dev
