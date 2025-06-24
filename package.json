@@ -5,8 +5,8 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "local": "npm run build && sls offline start",
-    "deploy": "npm run build && sls deploy --stage dev"
+    "local": "npm run build && sls offline start --aws-profile reto-aws",
+    "deploy": "npm run build && sls deploy --stage dev --aws-profile reto-aws"
   },
   "dependencies": {
     "aws-sdk": "^2.1580.0",

@@ -68,13 +68,16 @@ functions:
   processAppointment:
     handler: src/handlers/processAppointment.handler.handler
     events:
-      - sqs: !GetAtt SqsPeQueue.Arn
-      - sqs: !GetAtt SqsClQueue.Arn
+      - sqs:
+          arn: !GetAtt SqsPeQueue.Arn
+      - sqs:
+          arn: !GetAtt SqsClQueue.Arn
 
   updateStatus:
     handler: src/handlers/updateStatus.handler.handler
     events:
-      - sqs: !GetAtt StatusUpdateQueue.Arn
+      - sqs:
+          arn: !GetAtt StatusUpdateQueue.Arn
 
 resources:
   Resources:
