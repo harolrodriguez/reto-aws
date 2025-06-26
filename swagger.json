@@ -1,0 +1,144 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Appointment Scheduling API",
+    "version": "1.0.0",
+    "description": "API for creating and querying medical appointment requests."
+  },
+  "paths": {
+    "/appointment": {
+      "post": {
+        "summary": "Create Appointment Request",
+        "description": "Receives a new appointment request and queues it for processing.",
+        "requestBody": {
+          "description": "Appointment request data",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request accepted for processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters"
+          }
+        }
+      }
+    },
+    "/appointment/{insuredId}": {
+      "get": {
+        "summary": "Get Appointments by Insured ID",
+        "description": "Returns a list of all appointment requests and their status for a specific insured person.",
+        "parameters": [
+          {
+            "name": "insuredId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the insured person to query.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of appointments.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FullAppointment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AppointmentRequest": {
+        "type": "object",
+        "properties": {
+          "insuredId": {
+            "type": "string",
+            "example": "12345"
+          },
+          "scheduleId": {
+            "type": "number",
+            "example": 101
+          },
+          "countryISO": {
+            "type": "string",
+            "enum": ["PE", "CL"]
+          }
+        },
+        "required": [
+          "insuredId",
+          "scheduleId",
+          "countryISO"
+        ]
+      },
+      "AppointmentResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Appointment request received."
+          },
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "FullAppointment": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "insuredId": {
+            "type": "string"
+          },
+          "scheduleId": {
+            "type": "number"
+          },
+          "countryISO": {
+            "type": "string",
+            "enum": ["PE", "CL"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "completed", "failed"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}
